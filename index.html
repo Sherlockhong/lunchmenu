@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대전 서일고 급식 알리미</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #e0f7fa; /* 파스텔 민트색 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+            color: #333;
+        }
+        .container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #00796b; /* 진한 파스텔 초록색 */
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .btn-group .btn {
+            flex: 1;
+            margin: 0 10px;
+        }
+        .menu {
+            background: #fffde7; /* 파스텔 노란색 */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .meal-type {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #00796b;
+        }
+        .date-display {
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            color: #00796b;
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .nav-buttons .btn {
+            margin: 0 10px;
+        }
+        footer {
+            margin-top: 20px;
+            color: #00796b;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>대전 서일고 급식 알리미</h1>
+
+        <div class="btn-group" role="group">
+            <button id="lunch-btn" class="btn btn-primary">중식</button>
+            <button id="dinner-btn" class="btn btn-secondary">석식</button>
+        </div>
+
+        <p id="date-display" class="date-display"></p>
+        <p id="meal-type" class="meal-type"></p>
+
+        <div id="menu-display" class="menu">메뉴를 선택해주세요.</div>
+
+        <div class="nav-buttons" role="group">
+            <button id="prev-day-btn" class="btn btn-info">어제 메뉴</button>
+            <button id="today-btn" class="btn btn-warning">오늘 메뉴</button>
+            <button id="next-day-btn" class="btn btn-info">내일 메뉴</button>
+        </div>
+    </div>
+
+    <footer>
+        ⓒ 2024. SherlockHong All Rights Reserved.
+    </footer>
+
+    <script>
+        const apiKey = 'fa3c80d75a554199971303d22722286d';
+        const schoolCode = '7430061'; // 서일고 행정표준코드
+        const regionCode = 'G10'; // 대전광역시 시도교육청 코드
+        const lunchBtn = document.getElementById('lunch-btn');
+        const dinnerBtn = document.getElementById('dinner-btn');
+        const dateDisplay = document.getElementById('date-display');
+        const mealTypeDisplay = document.getElementById('meal-type');
+        const menuDisplay = document.getElementById('menu-display');
+        const prevDayBtn = document.getElementById('prev-day-btn');
+        const todayBtn = document.getElementById('today-btn');
+        const nextDayBtn = document.getElementById('next-day-btn');
+
+        let currentDate = new Date();
+
+        function formatDate(date) {
+            return date.toISOString().split('T')[0].replace(/-/g, '');
+        }
+
+        function updateDateDisplay() {
+            dateDisplay.textContent = `${currentDate.toLocaleDateString('ko-KR')} (${currentDate.toLocaleDateString('ko-KR', { weekday: 'long' })})`;
+        }
+
+        function fetchMenu(mealType) {
+            const formattedDate = formatDate(currentDate);
+            const mealCode = mealType === '중식' ? '2' : '3';
+            const apiUrl = `https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${apiKey}&Type=json&pIndex=1&pSize=10&ATPT_OFCDC_SC_CODE=${regionCode}&SD_SCHUL_CODE=${schoolCode}&MLSV_YMD=${formattedDate}&MMEAL_SC_CODE=${mealCode}`;
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    mealTypeDisplay.textContent = mealType;
+                    if (data.mealServiceDietInfo) {
+                        const menuData = data.mealServiceDietInfo[1].row[0].DDISH_NM;
+                        const menuItems = menuData.split('<br/>').slice(0, 10);
+                        menuDisplay.textContent = menuItems.join(', ');
+                    } else {
+                        menuDisplay.textContent = '해당 급식이 없습니다.';
+                    }
+                })
+                .catch(() => {
+                    menuDisplay.textContent = '급식 정보를 불러오는 중 오류가 발생했습니다.';
+                });
+        }
+
+        function changeDate(days) {
+            currentDate.setDate(currentDate.getDate() + days);
+            updateDateDisplay();
+        }
+
+        lunchBtn.addEventListener('click', () => fetchMenu('중식'));
+        dinnerBtn.addEventListener('click', () => fetchMenu('석식'));
+
+        prevDayBtn.addEventListener('click', () => {
+            changeDate(-1);
+            fetchMenu('중식');
+        });
+
+        todayBtn.addEventListener('click', () => {
+            currentDate = new Date();
+            updateDateDisplay();
+            fetchMenu('중식');
+        });
+
+        nextDayBtn.addEventListener('click', () => {
+            changeDate(1);
+            fetchMenu('중식');
+        });
+
+        updateDateDisplay();
+        fetchMenu('중식'); // 기본으로 오늘 중식 메뉴를 불러옴
+    </script>
+
+</body>
+</html>
